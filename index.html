@@ -264,7 +264,10 @@ function verGalaxia(){
   carta.style.display="none";
   canvas.style.display="block";
   animar();
-  musica.play();
+
+  musica.currentTime = 0;
+  musica.play().catch(()=>{});
+
   setInterval(mostrarMensaje,3000);
 }
 function verCarta(){
@@ -288,6 +291,7 @@ const musica=document.getElementById("musica");
 
 </body>
 </html>
+
 
 
 
