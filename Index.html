@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Para Joel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html,body{
+  margin:0;
+  padding:0;
+  background:black;
+  overflow:hidden;
+  font-family:system-ui, sans-serif;
+  color:white;
+}
+canvas{display:block}
+
+/* ===== PANTALLAS ===== */
+#inicio,#carta{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index:10;
+}
+
+/* 🌅 ATARDECER */
+#inicio{
+  background:linear-gradient(to bottom,#ff9a6a,#ff6f91,#5f2cff,#000);
+}
+#carta{
+  display:none;
+  padding:30px;
+  text-align:center;
+  background:linear-gradient(to top,#ff9a6a,#ff6f91,#5f2cff,#000);
+}
+
+h1{
+  font-size:44px;
+  margin-bottom:25px;
+}
+
+button{
+  padding:14px 28px;
+  margin:10px;
+  border:none;
+  border-radius:30px;
+  background:linear-gradient(135deg,#ff7a5c,#ffb36b);
+  color:#2b0033;
+  font-size:17px;
+  cursor:pointer;
+  box-shadow:0 0 25px rgba(255,160,100,.7);
+}
+button:hover{opacity:.9}
+
+/* ===== CARTA ===== */
+#tituloCarta{
+  font-size:26px;
+  margin-bottom:20px;
+  color:#fff3ea;
+}
+#texto{
+  max-width:720px;
+  font-size:20px;
+  white-space:pre-line;
+}
+
+/* ===== MENSAJES ===== */
+#mensajeFlotante{
+  position:absolute;
+  bottom:8%;
+  width:100%;
+  text-align:center;
+  font-size:26px;               /* ⬅ MÁS GRANDE */
+  font-weight:500;
+  letter-spacing:0.5px;
+  color:rgba(255,235,245,.95);  /* más visible */
+  text-shadow:0 0 25px rgba(255,170,220,.9);
+  opacity:0;
+  transition:opacity 0.8s;      /* ⬅ aparece más rápido */
+  pointer-events:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="inicio">
+  <h1>Joel 💙</h1>
+  <button onclick="verGalaxia()">🌌 Galaxia</button>
+  <button onclick="verCarta()">💌 Carta</button>
+</div>
+
+<div id="carta">
+  <div id="tituloCarta">Bajo el mismo atardecer</div>
+  <div id="texto"></div>
+  <button onclick="volver()">⬅ Volver</button>
+</div>
+
+<canvas id="galaxia"></canvas>
+
+<div id="mensajeFlotante"></div>
+
+<audio id="musica" loop>
+  <source src="musica.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const canvas=document.getElementById("galaxia");
+const ctx=canvas.getContext("2d");
+
+function resize(){
+  canvas.width=innerWidth;
+  canvas.height=innerHeight;
+}
+resize();
+addEventListener("resize",resize);
+
+let cx=canvas.width/2, cy=canvas.height/2;
+
+/* ===== ZOOM ===== */
+let zoom=0.28,targetZoom=0.28;
+addEventListener("wheel",e=>{
+  targetZoom+=e.deltaY*-0.0002;
+  targetZoom=Math.min(0.65,Math.max(0.15,targetZoom));
+});
+
+/* ===== ESTRELLAS DE FONDO ===== */
+const fondoStars=[];
+for(let i=0;i<10000;i++){
+  fondoStars.push({
+    x:Math.random(),
+    y:Math.random(),
+    s:Math.random()*1.1+0.2,
+    a:Math.random()*0.35+0.1
+  });
+}
+
+/* ===== MENSAJES ===== */
+const mensajes=[
+  "Compartir un atardecer ya dice mucho",
+  "Las cosas lindas no apuran",
+  "A veces basta coincidir",
+  "Hay momentos que se quedan",
+  "El cielo también guarda recuerdos"
+];
+function mostrarMensaje(){
+  const m=document.getElementById("mensajeFlotante");
+  m.textContent=mensajes[Math.floor(Math.random()*mensajes.length)];
+  m.style.opacity=1;
+  setTimeout(()=>m.style.opacity=0,3000);
+}
+
+/* ===== GALAXIA ===== */
+const ARMAS=4;
+const ESTRELLAS=85000;
+const stars=[];
+const tilt=0.55;
+
+for(let i=0;i<ESTRELLAS;i++){
+  const r=Math.random()**1.8;
+  const arm=Math.floor(Math.random()*ARMAS);
+  const angle=r*7+arm*(Math.PI*2/ARMAS)+(Math.random()-0.5);
+  stars.push({
+    r,angle,
+    size:Math.random()*0.7+0.1,
+    a:Math.random()*0.25+0.03
+  });
+}
+
+let drift=0,pulse=0;
+
+/* ===== FONDO ===== */
+function fondo(){
+  ctx.fillStyle="rgba(0,0,0,0.25)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  fondoStars.forEach(s=>{
+    ctx.fillStyle=`rgba(255,240,245,${s.a})`;
+    ctx.beginPath();
+    ctx.arc(
+      s.x*canvas.width,
+      s.y*canvas.height,
+      s.s,
+      0,Math.PI*2
+    );
+    ctx.fill();
+  });
+}
+
+/* ===== NÚCLEO ===== */
+function nucleo(){
+  const base=canvas.width*zoom*0.18;
+  const lat=base+Math.sin(pulse)*6;
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,lat);
+  g.addColorStop(0,"rgba(255,245,250,0.95)");
+  g.addColorStop(0.3,"rgba(255,200,225,0.8)");
+  g.addColorStop(0.6,"rgba(255,170,210,0.45)");
+  g.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.arc(cx,cy,lat,0,Math.PI*2);
+  ctx.fill();
+}
+
+/* ===== ESPIRAL ===== */
+function espiral(){
+  const max=Math.min(canvas.width,canvas.height)*zoom;
+  stars.forEach(s=>{
+    const d=s.r*max;
+    const a=s.angle+drift;
+    const x=cx+Math.cos(a)*d;
+    const y=cy+Math.sin(a)*d*tilt;
+    ctx.fillStyle=`rgba(255,210,235,${s.a})`;
+    ctx.beginPath();
+    ctx.arc(x,y,s.size,0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+/* ===== ANIMACIÓN ===== */
+function animar(){
+  fondo();
+  espiral();
+  nucleo();
+
+  zoom+=(targetZoom-zoom)*0.05;
+  drift+=0.00012;
+  pulse+=0.02;
+
+  requestAnimationFrame(animar);
+}
+
+/* ===== CARTA ===== */
+const mensajeCarta=`Nos conocimos en el servicio 🪖
+y aunque es poco tiempo,
+hiciste que mis días fueran más especiales.
+
+Entre atardeceres 🌅 y conversaciones,
+me hiciste sentir bien.
+
+Gracias por cada momento.
+En este universo,
+hay una constelación que lleva tu nombre. ✨`;
+
+function escribir(){
+  texto.innerHTML="";
+  let i=0;
+  (function t(){
+    if(i<mensajeCarta.length){
+      texto.innerHTML+=mensajeCarta[i++];
+      setTimeout(t,40);
+    }
+  })();
+}
+
+/* ===== CONTROLES ===== */
+function verGalaxia(){
+  inicio.style.display="none";
+  carta.style.display="none";
+  canvas.style.display="block";
+  animar();
+  musica.play();
+  setInterval(mostrarMensaje,3000);
+}
+function verCarta(){
+  inicio.style.display="none";
+  canvas.style.display="none";
+  carta.style.display="flex";
+  escribir();
+}
+function volver(){
+  musica.pause();
+  inicio.style.display="flex";
+  carta.style.display="none";
+  canvas.style.display="none";
+}
+
+const inicio=document.getElementById("inicio");
+const carta=document.getElementById("carta");
+const texto=document.getElementById("texto");
+const musica=document.getElementById("musica");
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
